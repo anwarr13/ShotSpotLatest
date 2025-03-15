@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:login_form/aboutscreen.dart';
@@ -41,6 +42,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isPanelVisible = false;
   double _panelHeightOpen = 0;
   double _panelHeightClosed = 0;
+  double _currentZoom = 12.0;
 
   FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Set<Marker> _markers = {};
@@ -61,6 +63,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
       mapController = controller;
     });
     await _loadApprovedBars();
+    
+    // Add zoom change listener
+    controller.addListener(() async {
+      if (mounted) {
+        final zoom = await controller.getZoomLevel();
+        setState(() {
+          _currentZoom = zoom;
+        });
+      }
+    });
   }
 
   @override
@@ -943,22 +955,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               // Map View
               GoogleMap(
-                onMapCreated: (controller) {
-                  setState(() => mapController = controller);
-                },
+                onMapCreated: onMapCreated,
                 initialCameraPosition: _kGooglePlex,
                 myLocationEnabled: true,
                 myLocationButtonEnabled: false,
                 markers: _markers,
                 mapType: _currentMapType,
-                zoomControlsEnabled: false,
-                buildingsEnabled: true,
-                trafficEnabled: true,
-                tiltGesturesEnabled: true,
-                rotateGesturesEnabled: true,
-                mapToolbarEnabled:
-                    true, // Enable the default toolbar for directions
-                compassEnabled: false,
+                zoomControlsEnabled: true,
+                onCameraMove: (CameraPosition position) {
+                  setState(() {
+                    _currentZoom = position.zoom;
+                  });
+                },
               ),
               if (_isLoading)
                 Container(
@@ -1070,6 +1078,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
 
+              // Scale Indicator
+              Positioned(
+                left: 16,
+                bottom: 100,
+                child: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.8),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 2,
+                        color: Colors.black,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        _getScaleText(),
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
               // Bottom Navigation
               Positioned(
                 left: 0,
@@ -1101,6 +1140,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
         drawer: _buildDrawer(),
       ),
     );
+  }
+
+  String _getScaleText() {
+    // Calculate approximate scale based on zoom level
+    // These values are approximate and may need adjustment
+    double metersPerPixel = 156543.03392 * Math.cos(7.7844 * Math.pi / 180) / Math.pow(2, _currentZoom);
+    double scaleWidth = 100 * metersPerPixel; // 100 is the width of our scale bar in pixels
+
+    if (scaleWidth >= 1000) {
+      return '${(scaleWidth / 1000).toStringAsFixed(1)} km';
+    } else {
+      return '${scaleWidth.toStringAsFixed(0)} m';
+    }
   }
 
   Widget _buildDrawer() {
@@ -1246,27 +1298,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ));
   }
-}
 
-Widget _buildNavButton(bool isSelected, String label, IconData icon) {
-  final color = isSelected ? Colors.blue : Colors.grey;
-  return Column(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(
-        icon,
-        color: color,
-        size: 24,
-      ),
-      const SizedBox(height: 4),
-      Text(
-        label,
-        style: TextStyle(
+  Widget _buildNavButton(bool isSelected, String label, IconData icon) {
+    final color = isSelected ? Colors.blue : Colors.grey;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
           color: color,
-          fontSize: 12,
-          fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+          size: 24,
         ),
-      ),
-    ],
-  );
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+          ),
+        ),
+      ],
+    );
+  }
 }
