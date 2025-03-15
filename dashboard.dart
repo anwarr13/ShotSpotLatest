@@ -63,16 +63,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       mapController = controller;
     });
     await _loadApprovedBars();
-    
-    // Add zoom change listener
-    controller.addListener(() async {
-      if (mounted) {
-        final zoom = await controller.getZoomLevel();
-        setState(() {
-          _currentZoom = zoom;
-        });
-      }
-    });
   }
 
   @override
@@ -955,12 +945,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               // Map View
               GoogleMap(
-                onMapCreated: onMapCreated,
+                mapType: _currentMapType,
                 initialCameraPosition: _kGooglePlex,
+                onMapCreated: onMapCreated,
+                markers: _markers,
                 myLocationEnabled: true,
                 myLocationButtonEnabled: false,
-                markers: _markers,
-                mapType: _currentMapType,
                 zoomControlsEnabled: true,
                 onCameraMove: (CameraPosition position) {
                   setState(() {
@@ -1145,7 +1135,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _getScaleText() {
     // Calculate approximate scale based on zoom level
     // These values are approximate and may need adjustment
-    double metersPerPixel = 156543.03392 * Math.cos(7.7844 * Math.pi / 180) / Math.pow(2, _currentZoom);
+    double metersPerPixel = 156543.03392 * cos(7.7844 * pi / 180) / pow(2, _currentZoom);
     double scaleWidth = 100 * metersPerPixel; // 100 is the width of our scale bar in pixels
 
     if (scaleWidth >= 1000) {
