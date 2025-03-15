@@ -366,6 +366,15 @@ class _SignupScreenState extends State<SignupScreen> {
         _operatingHours.clear();
         _operatingHours.addAll(result);
       });
+      
+      // Automatically scroll to the next section
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.pixels + 100,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     }
   }
 

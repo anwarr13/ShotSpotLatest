@@ -282,10 +282,12 @@ class _SetOperatingHoursScreenState extends State<SetOperatingHoursScreen> {
           actions: [
             TextButton(
               onPressed: () {
+                // Return the operating hours to the signup screen
                 Navigator.pop(context, _operatingHours);
+                _hasUnsavedChanges = false;
               },
               child: const Text(
-                'Save',
+                'Done',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
