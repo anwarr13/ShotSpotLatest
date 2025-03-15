@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:login_form/main.dart';
+import 'login_screen.dart';
 import 'location_picker_screen.dart';
 import 'package:philippines_rpcmb/philippines_rpcmb.dart';
 import 'package:image_picker/image_picker.dart';
@@ -1199,6 +1199,40 @@ class _SignupScreenState extends State<SignupScreen> {
         const SizedBox(height: 16),
         ElevatedButton.icon(
           onPressed: () async {
+            final ImagePicker picker = ImagePicker();
+            final XFile? image = await picker.pickImage(
+              source: ImageSource.gallery,
+              maxWidth: 1920,
+              maxHeight: 1080,
+              imageQuality: 85,
+            );
+            if (image != null) {
+              setState(() {
+                _permitImagePath = image.path;
+              });
+            }
+          },
+          icon: const Icon(Icons.upload_file),
+          label: Text(_permitImagePath != null ? 'Change Permit Photo' : 'Upload Permit Photo'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            minimumSize: const Size(double.infinity, 48),
+          ),
+        ),
+        if (_permitImagePath != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'Permit photo uploaded successfully',
+              style: TextStyle(
+                color: Colors.green[700],
+                fontSize: 14,
+              ),
+            ),
+          ),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: () async {
             final result = await Navigator.push<Map<String, OperatingHours>>(
               context,
               MaterialPageRoute(
@@ -1470,5 +1504,15 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       ),
     );
+  }
+
+  int _calculateAge(DateTime birthDate) {
+    final now = DateTime.now();
+    int age = now.year - birthDate.year;
+    if (now.month < birthDate.month ||
+        (now.month == birthDate.month && now.day < birthDate.day)) {
+      age--;
+    }
+    return age;
   }
 }
