@@ -325,6 +325,9 @@ Need help? Contact our support team anytime.''',
         final locationData = data['location'];
         GeoPoint? geoPoint;
 
+        // Skip disabled bars
+        if (data['isActive'] == false) continue;
+
         if (locationData is GeoPoint) {
           geoPoint = locationData;
         } else if (locationData is Map<String, dynamic>) {
@@ -715,30 +718,27 @@ Need help? Contact our support team anytime.''',
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
-                      'Business Permit - $barName',
+                      '$barName - Business Permit',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
@@ -756,43 +756,74 @@ Need help? Contact our support team anytime.''',
                   fit: BoxFit.contain,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return SizedBox(
-                      height: 300,
+                    return Container(
+                      color: Colors.grey.shade100,
                       child: Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
-                              : null,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Loading permit image...',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     );
                   },
                   errorBuilder: (context, error, stackTrace) {
                     return Container(
-                      height: 300,
                       color: Colors.grey.shade100,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: Colors.red.shade400,
-                            size: 48,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'Failed to load permit image',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ],
+                      child: Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline, 
+                              color: Colors.red[400],
+                              size: 48,
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'Failed to load permit image',
+                              style: TextStyle(color: Colors.red),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                _showPermitImage(imageUrl, barName);
+                              },
+                              child: const Text('Try Again'),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
