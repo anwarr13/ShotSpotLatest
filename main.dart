@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'mood_category.dart';
-import 'signup_screen.dart'; // Import the signup screen
-import 'package:firebase_core/firebase_core.dart'; // Import Firebase core
-import 'package:firebase_auth/firebase_auth.dart'; // Import Firebase authentication
-import 'firebase_options.dart'; // Import the Firebase options
+import 'signup_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'superadmin.dart'; // Import the superadmin dashboard
-import 'bar_owner_dashboard.dart'; // Import bar owner dashboard
-import 'forgot_password_screen.dart'; // Import forgot password screen
+import 'superadmin.dart';
+import 'bar_owner_dashboard.dart';
+import 'forgot_password_screen.dart';
+import 'welcome_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +25,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LoginScreen(), // Show login screen by default
+      home: WelcomeScreen(),
     );
   }
 }
