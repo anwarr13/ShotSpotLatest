@@ -351,235 +351,106 @@ class _SignupScreenState extends State<SignupScreen> {
     }
   }
 
-  void _showOperatingHoursDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+  void _showOperatingHoursScreen() async {
+    final Map<String, OperatingHours>? result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SetOperatingHoursScreen(
+          initialHours: _operatingHours,
+        ),
+      ),
+    );
+
+    if (result != null) {
+      setState(() {
+        _operatingHours.clear();
+        _operatingHours.addAll(result);
+      });
+    }
+  }
+
+  Widget _buildOperatingHoursSummary() {
+    // Count how many days are open
+    int openDays = _operatingHours.values.where((hours) => hours.isOpen).length;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Operating Hours',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Open $openDays days a week',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
               ),
-              child: Container(
-                width: MediaQuery.of(context).size.width * 0.9,
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Set Operating Hours',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+              TextButton.icon(
+                onPressed: _showOperatingHoursScreen,
+                icon: const Icon(Icons.edit),
+                label: const Text('Edit'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Show a preview of the hours
+          ...['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+              .map((day) {
+            final hours = _operatingHours[day]!;
+            if (!hours.isOpen) return const SizedBox.shrink();
+            
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 100,
+                    child: Text(
+                      day,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
-                    const SizedBox(height: 16),
-                    // Templates dropdown
-                    DropdownButtonFormField<String>(
-                      decoration: InputDecoration(
-                        labelText: 'Quick Templates',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 8),
-                      ),
-                      items:
-                          _operatingHoursTemplates.keys.map((String template) {
-                        return DropdownMenuItem<String>(
-                          value: template,
-                          child: Text(template),
-                        );
-                      }).toList(),
-                      onChanged: (String? template) {
-                        if (template != null) {
-                          setState(() {
-                            _operatingHours.clear();
-                            _operatingHours
-                                .addAll(_operatingHoursTemplates[template]!);
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    // Days of the week in a scrollable container
-                    Container(
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.of(context).size.height * 0.4,
-                      ),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: _operatingHours.entries.map((entry) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4),
-                              child: Row(
-                                children: [
-                                  // Day name
-                                  SizedBox(
-                                    width: 90,
-                                    child: Text(
-                                      entry.key,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                  // Open/Close switch
-                                  Switch(
-                                    value: entry.value.isOpen,
-                                    onChanged: (bool value) {
-                                      setState(() {
-                                        _operatingHours[entry.key] =
-                                            entry.value.copyWith(isOpen: value);
-                                      });
-                                    },
-                                  ),
-                                  // Time selection
-                                  if (entry.value.isOpen)
-                                    Expanded(
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          InkWell(
-                                            onTap: () async {
-                                              final TimeOfDay? newTime =
-                                                  await _showTimePicker(
-                                                context,
-                                                entry.value.openTime,
-                                              );
-                                              if (newTime != null) {
-                                                setState(() {
-                                                  _operatingHours[entry.key] =
-                                                      entry.value.copyWith(
-                                                          openTime: newTime);
-                                                });
-                                              }
-                                            },
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color:
-                                                        Colors.grey.shade300),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                _formatTimeOfDay(
-                                                    entry.value.openTime),
-                                                style: const TextStyle(
-                                                    fontSize: 13),
-                                              ),
-                                            ),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 4),
-                                            child: Text(
-                                              '-',
-                                              style: TextStyle(
-                                                  color: Colors.grey.shade600),
-                                            ),
-                                          ),
-                                          InkWell(
-                                            onTap: () async {
-                                              final TimeOfDay? newTime =
-                                                  await _showTimePicker(
-                                                context,
-                                                entry.value.closeTime,
-                                              );
-                                              if (newTime != null) {
-                                                setState(() {
-                                                  _operatingHours[entry.key] =
-                                                      entry.value.copyWith(
-                                                          closeTime: newTime);
-                                                });
-                                              }
-                                            },
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 4),
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color:
-                                                        Colors.grey.shade300),
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                _formatTimeOfDay(
-                                                    entry.value.closeTime),
-                                                style: const TextStyle(
-                                                    fontSize: 13),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  else
-                                    Expanded(
-                                      child: Align(
-                                        alignment: Alignment.centerRight,
-                                        child: Text(
-                                          'Closed',
-                                          style: TextStyle(
-                                            color: Colors.red.shade400,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Action buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            'Cancel',
-                            style: TextStyle(color: Colors.grey.shade600),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        ElevatedButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Theme.of(context).primaryColor,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          child: const Text('Save'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                  Text(
+                    '${_formatTimeOfDay(hours.openTime)} - ${_formatTimeOfDay(hours.closeTime)}',
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                ],
               ),
             );
-          },
-        );
-      },
+          }).where((widget) => widget is! SizedBox).take(3).toList(),
+          if (openDays > 3)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                '... and ${openDays - 3} more days',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -1152,19 +1023,7 @@ class _SignupScreenState extends State<SignupScreen> {
                             const SizedBox(height: 32),
                             _buildBarFeaturesSection(),
                             const SizedBox(height: 32),
-                            ElevatedButton(
-                              onPressed: _showOperatingHoursDialog,
-                              child: Text('Set Operating Hours'),
-                              style: ElevatedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 24,
-                                  vertical: 16,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            ),
+                            _buildOperatingHoursSummary(),
                             const SizedBox(height: 32),
                             _buildLocationSection(),
                           ],
