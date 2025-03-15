@@ -261,6 +261,48 @@ Need help? Contact our support team anytime.''',
     }
   }
 
+  Future<void> _handleBarStatus(String barId, bool enable) async {
+    try {
+      // Update bar status in Firestore
+      await _firestore.collection('bars').doc(barId).update({
+        'isActive': enable,
+      });
+
+      // Update marker visibility
+      setState(() {
+        _markers = _markers.map((marker) {
+          if (marker.markerId.value == barId) {
+            return marker.copyWith(
+              visibleParam: enable,
+            );
+          }
+          return marker;
+        }).toSet();
+      });
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              enable ? 'Bar enabled successfully' : 'Bar disabled successfully',
+            ),
+            backgroundColor: enable ? Colors.green : Colors.orange,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating bar status: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1082,6 +1124,31 @@ Need help? Contact our support team anytime.''',
                           ),
                         ),
                       ],
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          ElevatedButton.icon(
+                            icon: Icon(
+                              data['isActive'] == false ? Icons.play_arrow : Icons.pause,
+                              size: 20,
+                            ),
+                            label: Text(data['isActive'] == false ? 'Enable Bar' : 'Disable Bar'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: data['isActive'] == false ? Colors.green.shade600 : Colors.orange.shade600,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () => _handleBarStatus(docs[index].id, data['isActive'] == false),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
