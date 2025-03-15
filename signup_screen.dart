@@ -7,53 +7,7 @@ import 'package:login_form/main.dart';
 import 'location_picker_screen.dart';
 import 'package:philippines_rpcmb/philippines_rpcmb.dart';
 import 'package:image_picker/image_picker.dart';
-
-/// A class representing the operating hours for a bar
-class OperatingHours {
-  final TimeOfDay openTime;
-  final TimeOfDay closeTime;
-  final bool isOpen;
-
-  const OperatingHours({
-    required this.openTime,
-    required this.closeTime,
-    this.isOpen = false,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      'openTime': '${openTime.hour}:${openTime.minute}',
-      'closeTime': '${closeTime.hour}:${closeTime.minute}',
-      'isOpen': isOpen,
-    };
-  }
-
-  factory OperatingHours.fromJson(Map<String, dynamic> json) {
-    return OperatingHours(
-      openTime: TimeOfDay(
-        hour: int.parse(json['openTime'].split(':')[0]),
-        minute: int.parse(json['openTime'].split(':')[1]),
-      ),
-      closeTime: TimeOfDay(
-        hour: int.parse(json['closeTime'].split(':')[0]),
-        minute: int.parse(json['closeTime'].split(':')[1]),
-      ),
-      isOpen: json['isOpen'] as bool,
-    );
-  }
-
-  OperatingHours copyWith({
-    TimeOfDay? openTime,
-    TimeOfDay? closeTime,
-    bool? isOpen,
-  }) {
-    return OperatingHours(
-      openTime: openTime ?? this.openTime,
-      closeTime: closeTime ?? this.closeTime,
-      isOpen: isOpen ?? this.isOpen,
-    );
-  }
-}
+import 'set_operation_hours_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({Key? key}) : super(key: key);
@@ -128,431 +82,10 @@ class _SignupScreenState extends State<SignupScreen> {
   final DateTime _maxDate =
       DateTime.now().subtract(const Duration(days: 365 * 18)); // 18 years ago
 
-  final Map<String, OperatingHours> _operatingHours = {
-    'Monday': OperatingHours(
-      openTime: const TimeOfDay(hour: 16, minute: 0),
-      closeTime: const TimeOfDay(hour: 2, minute: 0),
-      isOpen: true,
-    ),
-    'Tuesday': OperatingHours(
-      openTime: const TimeOfDay(hour: 16, minute: 0),
-      closeTime: const TimeOfDay(hour: 2, minute: 0),
-      isOpen: true,
-    ),
-    'Wednesday': OperatingHours(
-      openTime: const TimeOfDay(hour: 16, minute: 0),
-      closeTime: const TimeOfDay(hour: 2, minute: 0),
-      isOpen: true,
-    ),
-    'Thursday': OperatingHours(
-      openTime: const TimeOfDay(hour: 16, minute: 0),
-      closeTime: const TimeOfDay(hour: 2, minute: 0),
-      isOpen: true,
-    ),
-    'Friday': OperatingHours(
-      openTime: const TimeOfDay(hour: 16, minute: 0),
-      closeTime: const TimeOfDay(hour: 2, minute: 0),
-      isOpen: true,
-    ),
-    'Saturday': OperatingHours(
-      openTime: const TimeOfDay(hour: 16, minute: 0),
-      closeTime: const TimeOfDay(hour: 2, minute: 0),
-      isOpen: true,
-    ),
-    'Sunday': OperatingHours(
-      openTime: const TimeOfDay(hour: 16, minute: 0),
-      closeTime: const TimeOfDay(hour: 2, minute: 0),
-      isOpen: true,
-    ),
-  };
+  Map<String, OperatingHours>? _selectedOperatingHours;
 
-  // Predefined operating hours templates
-  final Map<String, Map<String, OperatingHours>> _operatingHoursTemplates = {
-    'Standard Evening Hours': {
-      'Monday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: true),
-      'Tuesday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: true),
-      'Wednesday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: true),
-      'Thursday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: true),
-      'Friday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: true),
-      'Saturday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: true),
-      'Sunday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: true),
-    },
-    'Weekend Only': {
-      'Monday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: false),
-      'Tuesday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: false),
-      'Wednesday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: false),
-      'Thursday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: false),
-      'Friday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: true),
-      'Saturday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 3, minute: 0),
-          isOpen: true),
-      'Sunday': OperatingHours(
-          openTime: TimeOfDay(hour: 16, minute: 0),
-          closeTime: TimeOfDay(hour: 2, minute: 0),
-          isOpen: true),
-    },
-    'Late Night Hours': {
-      'Monday': OperatingHours(
-          openTime: TimeOfDay(hour: 20, minute: 0),
-          closeTime: TimeOfDay(hour: 4, minute: 0),
-          isOpen: true),
-      'Tuesday': OperatingHours(
-          openTime: TimeOfDay(hour: 20, minute: 0),
-          closeTime: TimeOfDay(hour: 4, minute: 0),
-          isOpen: true),
-      'Wednesday': OperatingHours(
-          openTime: TimeOfDay(hour: 20, minute: 0),
-          closeTime: TimeOfDay(hour: 4, minute: 0),
-          isOpen: true),
-      'Thursday': OperatingHours(
-          openTime: TimeOfDay(hour: 20, minute: 0),
-          closeTime: TimeOfDay(hour: 4, minute: 0),
-          isOpen: true),
-      'Friday': OperatingHours(
-          openTime: TimeOfDay(hour: 20, minute: 0),
-          closeTime: TimeOfDay(hour: 5, minute: 0),
-          isOpen: true),
-      'Saturday': OperatingHours(
-          openTime: TimeOfDay(hour: 20, minute: 0),
-          closeTime: TimeOfDay(hour: 5, minute: 0),
-          isOpen: true),
-      'Sunday': OperatingHours(
-          openTime: TimeOfDay(hour: 20, minute: 0),
-          closeTime: TimeOfDay(hour: 4, minute: 0),
-          isOpen: true),
-    },
-  };
+  String? _permitImagePath;
 
-  String _formatTimeOfDay(TimeOfDay time) {
-    final hour = time.hour == 0
-        ? 12
-        : time.hour > 12
-            ? time.hour - 12
-            : time.hour;
-    final period = time.hour < 12 ? 'AM' : 'PM';
-    return '${hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')} $period';
-  }
-
-  Future<TimeOfDay?> _showTimePicker(
-      BuildContext context, TimeOfDay initialTime) async {
-    return showTimePicker(
-      context: context,
-      initialTime: initialTime,
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            timePickerTheme: TimePickerThemeData(
-              backgroundColor: Colors.white,
-              hourMinuteShape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-  }
-
-  int _calculateAge(DateTime birthDate) {
-    final now = DateTime.now();
-    int age = now.year - birthDate.year;
-    if (now.month < birthDate.month ||
-        (now.month == birthDate.month && now.day < birthDate.day)) {
-      age--;
-    }
-    return age;
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedBirthdate ?? _maxDate,
-      firstDate: _minDate,
-      lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Theme.of(context).primaryColor,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black87,
-            ),
-            dialogBackgroundColor: Colors.white,
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      final age = _calculateAge(picked);
-      if (age < 18) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('You must be at least 18 years old to register.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-      if (age > 90) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please enter a valid birth date.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-      setState(() {
-        _selectedBirthdate = picked;
-      });
-    }
-  }
-
-  void _showOperatingHoursScreen() async {
-    final Map<String, OperatingHours>? result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => SetOperatingHoursScreen(
-          initialHours: _operatingHours,
-        ),
-      ),
-    );
-
-    if (result != null) {
-      setState(() {
-        _operatingHours.clear();
-        _operatingHours.addAll(result);
-      });
-      
-      // Automatically scroll to the next section
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.pixels + 100,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    }
-  }
-
-  Widget _buildOperatingHoursSummary() {
-    // Count how many days are open
-    int openDays = _operatingHours.values.where((hours) => hours.isOpen).length;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Operating Hours',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Open $openDays days a week',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-              TextButton.icon(
-                onPressed: _showOperatingHoursScreen,
-                icon: const Icon(Icons.edit),
-                label: const Text('Edit'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Show a preview of the hours
-          ...['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-              .map((day) {
-            final hours = _operatingHours[day]!;
-            if (!hours.isOpen) return const SizedBox.shrink();
-            
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 100,
-                    child: Text(
-                      day,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  Text(
-                    '${_formatTimeOfDay(hours.openTime)} - ${_formatTimeOfDay(hours.closeTime)}',
-                    style: TextStyle(color: Colors.grey.shade700),
-                  ),
-                ],
-              ),
-            );
-          }).where((widget) => widget is! SizedBox).take(3).toList(),
-          if (openDays > 3)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                '... and ${openDays - 3} more days',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _retypePasswordController.dispose();
-    _firstNameController.dispose();
-    _middleNameController.dispose();
-    _lastNameController.dispose();
-    _barNameController.dispose();
-    _contactNumberController.dispose();
-    _streetAddressController.dispose();
-    _descriptionController.dispose();
-    _provinceController.dispose();
-    _municipalityController.dispose();
-    _barangayController.dispose();
-    _permitNumberController.dispose();
-    super.dispose();
-  }
-
-  // Function to validate phone number
-  String? _validatePhoneNumber(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Phone number is required';
-    }
-    if (!value.startsWith('09')) {
-      return 'Phone number must start with 09';
-    }
-    if (value.length != 11) {
-      return 'Phone number must be exactly 11 digits';
-    }
-    return null;
-  }
-
-  // Function to validate password
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Password is required';
-    }
-    if (value.length < 6) {
-      return 'Password must be at least 6 characters';
-    }
-    if (!RegExp(r'[A-Z]').hasMatch(value)) {
-      return 'Password must contain at least one uppercase letter';
-    }
-    if (!RegExp(r'[0-9]').hasMatch(value)) {
-      return 'Password must contain at least one number';
-    }
-    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
-      return 'Password must contain at least one special character';
-    }
-    return null;
-  }
-
-  void _clearFields() {
-    _emailController.clear();
-    _passwordController.clear();
-    _retypePasswordController.clear();
-    _firstNameController.clear();
-    _middleNameController.clear();
-    _lastNameController.clear();
-    _barNameController.clear();
-    _contactNumberController.clear();
-    _streetAddressController.clear();
-    _descriptionController.clear();
-    _provinceController.clear();
-    _municipalityController.clear();
-    _barangayController.clear();
-    _permitNumberController.clear();
-
-    setState(() {
-      _selectedGender = null;
-      _selectedUserType = 'User';
-      _isBarOwner = false;
-      _showRoleSelection = true;
-      _selectedBirthday = null;
-      _selectedLocation = null;
-      region = null;
-      province = null;
-      municipality = null;
-      barangay = null;
-      _selectedFeatures.clear();
-      _isLoading = false;
-      _selectedBirthdate = null;
-      _permitImagePath = null;
-    });
-
-    _formKey.currentState?.reset();
-  }
-
-  // Function to handle signup
   Future<void> _signUp() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedBirthdate == null) {
@@ -565,21 +98,31 @@ class _SignupScreenState extends State<SignupScreen> {
         return;
       }
 
-      // // Validate permit number for bar owners
-      // if (_isBarOwner && _permitNumberController.text.isEmpty) {
-      //   ScaffoldMessenger.of(context).showSnackBar(
-      //     const SnackBar(
-      //       content: Text('Please enter your business permit number.'),
-      //       backgroundColor: Colors.red,
-      //     ),
-      //   );
-      //   return;
-      // }
+      // Validate permit number for bar owners
+      if (_isBarOwner && _permitNumberController.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter your business permit number.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
 
       if (_isBarOwner && _permitImagePath == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please attach a photo of your business permit.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      if (_isBarOwner && _selectedOperatingHours == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please set your bar\'s operating hours'),
             backgroundColor: Colors.red,
           ),
         );
@@ -596,7 +139,7 @@ class _SignupScreenState extends State<SignupScreen> {
         );
         return;
       }
-      if (age > 55) {
+      if (age > 90) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Please enter a valid birth date.'),
@@ -644,14 +187,12 @@ class _SignupScreenState extends State<SignupScreen> {
 
         if (_isBarOwner) {
           // Add bar-specific data
-          final operatingHoursData = _operatingHours.map((day, hours) {
-            return MapEntry(day.toLowerCase(), hours.toJson());
-          });
-
           final barData = {
             ...userData,
             'barName': _barNameController.text,
-            'operatingHours': operatingHoursData,
+            'operatingHours': _selectedOperatingHours?.map(
+              (key, value) => MapEntry(key, value.toJson()),
+            ),
             'features': _selectedFeatures.toList(),
             'permitNumber': _permitNumberController.text,
             'permitImagePath': _permitImagePath,
@@ -1032,8 +573,6 @@ class _SignupScreenState extends State<SignupScreen> {
                             const SizedBox(height: 32),
                             _buildBarFeaturesSection(),
                             const SizedBox(height: 32),
-                            _buildOperatingHoursSummary(),
-                            const SizedBox(height: 32),
                             _buildLocationSection(),
                           ],
                         ),
@@ -1391,8 +930,6 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  String? _permitImagePath;
-
   Widget _buildPersonalInfoSection() {
     return _buildSectionContainer(
       title: 'Personal Information',
@@ -1551,7 +1088,24 @@ class _SignupScreenState extends State<SignupScreen> {
             helperMaxLines: 2,
           ),
           obscureText: !_isPasswordVisible,
-          validator: _validatePassword,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Password is required';
+            }
+            if (value.length < 6) {
+              return 'Password must be at least 6 characters';
+            }
+            if (!RegExp(r'[A-Z]').hasMatch(value)) {
+              return 'Password must contain at least one uppercase letter';
+            }
+            if (!RegExp(r'[0-9]').hasMatch(value)) {
+              return 'Password must contain at least one number';
+            }
+            if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value)) {
+              return 'Password must contain at least one special character';
+            }
+            return null;
+          },
         ),
         const SizedBox(height: 20),
         TextFormField(
@@ -1604,73 +1158,79 @@ class _SignupScreenState extends State<SignupScreen> {
           controller: _barNameController,
           decoration: const InputDecoration(
             labelText: 'Bar Name',
-            prefixIcon: Icon(Icons.business),
+            prefixIcon: Icon(Icons.storefront),
           ),
-          textCapitalization: TextCapitalization.words,
           validator: (value) {
-            if (value == null || value.trim().isEmpty) {
-              return 'Bar name is required';
+            if (value == null || value.isEmpty) {
+              return 'Please enter your bar name';
             }
             return null;
           },
         ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _contactNumberController,
-          decoration: const InputDecoration(
-            labelText: 'Contact Number',
-            prefixIcon: Icon(Icons.phone),
-            hintText: '09XXXXXXXXX',
-          ),
-          keyboardType: TextInputType.phone,
-          validator: _validatePhoneNumber,
-        ),
-        const SizedBox(height: 8),
-        ElevatedButton.icon(
-          onPressed: () async {
-            // Add image picker functionality
-            final ImagePicker _picker = ImagePicker();
-            final XFile? image =
-                await _picker.pickImage(source: ImageSource.gallery);
-
-            if (image != null) {
-              setState(() {
-                _permitImagePath = image.path;
-              });
-            }
-          },
-          icon: Icon(Icons.upload_file),
-          label: Text(_permitImagePath != null
-              ? 'Change Permit Photo'
-              : 'Upload Permit Photo'),
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          ),
-        ),
-        if (_permitImagePath != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              'Permit photo uploaded successfully',
-              style: TextStyle(color: Colors.green, fontSize: 12),
-            ),
-          ),
         const SizedBox(height: 16),
         TextFormField(
           controller: _descriptionController,
           decoration: const InputDecoration(
-            labelText: 'Bar Description',
+            labelText: 'Description',
             prefixIcon: Icon(Icons.description),
-            hintText: 'Describe your bar',
           ),
           maxLines: 3,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Please enter a description of your bar';
+              return 'Please enter a description for your bar';
             }
             return null;
           },
         ),
+        const SizedBox(height: 16),
+        TextFormField(
+          controller: _permitNumberController,
+          decoration: const InputDecoration(
+            labelText: 'Business Permit Number',
+            prefixIcon: Icon(Icons.numbers),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter your business permit number';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: () async {
+            final result = await Navigator.push<Map<String, OperatingHours>>(
+              context,
+              MaterialPageRoute(
+                builder: (context) => SetOperationHoursScreen(
+                  initialHours: _selectedOperatingHours,
+                ),
+              ),
+            );
+            if (result != null) {
+              setState(() {
+                _selectedOperatingHours = result;
+              });
+            }
+          },
+          icon: const Icon(Icons.access_time),
+          label: Text(_selectedOperatingHours == null ? 'Set Operating Hours' : 'Edit Operating Hours'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            minimumSize: const Size(double.infinity, 48),
+          ),
+        ),
+        if (_selectedOperatingHours != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Text(
+              'Operating hours have been set',
+              style: TextStyle(
+                color: Colors.green[700],
+                fontSize: 14,
+              ),
+            ),
+          ),
       ],
     );
   }
