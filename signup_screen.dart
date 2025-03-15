@@ -7,6 +7,8 @@ import 'login_screen.dart';
 import 'location_picker_screen.dart';
 import 'package:philippines_rpcmb/philippines_rpcmb.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import 'set_operation_hours_screen.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -85,6 +87,7 @@ class _SignupScreenState extends State<SignupScreen> {
   Map<String, OperatingHours>? _selectedOperatingHours;
 
   String? _permitImagePath;
+  String? _permitImageUrl;
 
   Future<void> _signUp() async {
     if (_formKey.currentState!.validate()) {
@@ -109,10 +112,10 @@ class _SignupScreenState extends State<SignupScreen> {
         return;
       }
 
-      if (_isBarOwner && _permitImagePath == null) {
+      if (_isBarOwner && _permitImageUrl == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Please attach a photo of your business permit.'),
+            content: Text('Please wait for the permit photo to finish uploading.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -195,7 +198,7 @@ class _SignupScreenState extends State<SignupScreen> {
             ),
             'features': _selectedFeatures.toList(),
             'permitNumber': _permitNumberController.text,
-            'permitImagePath': _permitImagePath,
+            'permitImagePath': _permitImageUrl,
             'location': locationGeoPoint,
             'address': {
               'street': _streetAddressController.text,
@@ -930,6 +933,90 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedBirthdate ?? _maxDate,
+      firstDate: _minDate,
+      lastDate: _maxDate,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).primaryColor,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: Colors.black87,
+            ),
+            dialogBackgroundColor: Colors.white,
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && mounted) {
+      final age = _calculateAge(picked);
+      if (age < 18) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You must be at least 18 years old to register.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      if (age > 90) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter a valid birth date.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      setState(() {
+        _selectedBirthdate = picked;
+      });
+    }
+  }
+
+  Future<void> _uploadPermitImage(String imagePath) async {
+    try {
+      final file = File(imagePath);
+      final storageRef = FirebaseStorage.instance.ref();
+      final permitRef = storageRef.child('permits/${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}');
+      
+      // Upload the file
+      final uploadTask = permitRef.putFile(file);
+      
+      // Show upload progress
+      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+        final progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        // You could show a progress indicator here if needed
+      });
+
+      // Get the download URL when upload completes
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      
+      setState(() {
+        _permitImageUrl = downloadUrl;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to upload permit image: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      // Clear the local path if upload fails
+      setState(() {
+        _permitImagePath = null;
+      });
+    }
+  }
+
   Widget _buildPersonalInfoSection() {
     return _buildSectionContainer(
       title: 'Personal Information',
@@ -1210,6 +1297,8 @@ class _SignupScreenState extends State<SignupScreen> {
               setState(() {
                 _permitImagePath = image.path;
               });
+              // Upload the image to Firebase Storage
+              await _uploadPermitImage(image.path);
             }
           },
           icon: const Icon(Icons.upload_file),
@@ -1219,7 +1308,24 @@ class _SignupScreenState extends State<SignupScreen> {
             minimumSize: const Size(double.infinity, 48),
           ),
         ),
-        if (_permitImagePath != null)
+        if (_permitImagePath != null && _permitImageUrl == null)
+          Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 12),
+                Text(
+                  'Uploading permit photo...',
+                  style: TextStyle(
+                    color: Colors.grey[600],
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (_permitImageUrl != null)
           Padding(
             padding: const EdgeInsets.only(top: 8.0),
             child: Text(
