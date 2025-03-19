@@ -14,6 +14,8 @@ import 'editprofilescreen.dart';
 import 'package:location/location.dart' as loc;
 import 'package:geocoding/geocoding.dart' as geocoding;
 import 'package:geolocator/geolocator.dart';
+import 'login_screen.dart';
+import 'dart:math';
 
 class DashboardScreen extends StatefulWidget {
   final List<String>? selectedFeatures;
@@ -846,13 +848,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _filteredBars = _allBars.where((bar) {
           final data = bar.data()!;
           final name = (data['barName'] ?? '').toString().toLowerCase();
-          final address = (data['streetAddress'] ?? '').toString().toLowerCase();
-          final description = (data['description'] ?? '').toString().toLowerCase();
+          final address =
+              (data['streetAddress'] ?? '').toString().toLowerCase();
+          final description =
+              (data['description'] ?? '').toString().toLowerCase();
           final searchLower = query.toLowerCase();
-          
-          return name.contains(searchLower) || 
-                 address.contains(searchLower) ||
-                 description.contains(searchLower);
+
+          return name.contains(searchLower) ||
+              address.contains(searchLower) ||
+              description.contains(searchLower);
         }).toList();
       }
 
@@ -1023,7 +1027,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   child: IconButton(
                     icon: const Icon(Icons.layers),
-                    onPressed: _showMapTypeSelector,
+                    onPressed: ,
                   ),
                 ),
               ),
