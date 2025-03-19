@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:login_form/aboutscreen.dart';
@@ -42,7 +41,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isPanelVisible = false;
   double _panelHeightOpen = 0;
   double _panelHeightClosed = 0;
-  double _currentZoom = 12.0;
+
+  // Add search controller
+  final TextEditingController _searchController = TextEditingController();
+  List<DocumentSnapshot<Map<String, dynamic>>> _allBars = [];
+  List<DocumentSnapshot<Map<String, dynamic>>> _filteredBars = [];
 
   FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Set<Marker> _markers = {};
@@ -85,7 +88,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
-    _userSubscription?.cancel(); // Cancel subscription
+    _userSubscription?.cancel();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -384,7 +388,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _loadApprovedBars() async {
     setState(() => _isLoading = true);
     try {
-      // Get all approved bars from Firestore with proper typing
       final QuerySnapshot<Map<String, dynamic>> barSnapshot = await _firestore
           .collection('bars')
           .where('status', isEqualTo: 'approved')
@@ -396,101 +399,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
       setState(() {
         _markers.clear();
+        _allBars = barSnapshot.docs;
+        _filteredBars = _allBars;
 
-        // Add markers for each bar
         for (var doc in barSnapshot.docs) {
           final data = doc.data();
-
-          // Skip bars that don't match the selected features
-          if (_selectedFeatures != null && _selectedFeatures!.isNotEmpty) {
-            final List<dynamic> barFeatures =
-                data['features'] as List<dynamic>? ?? [];
-            bool hasMatchingFeature = false;
-
-            // Check if the bar has at least one of the selected features
-            for (String feature in _selectedFeatures!) {
-              if (barFeatures.contains(feature)) {
-                hasMatchingFeature = true;
-                break;
-              }
-            }
-
-            // Skip this bar if it doesn't have any matching features
-            if (!hasMatchingFeature) continue;
-          }
-
-          // Get bar location
-          final location = data['location'];
-          if (location != null) {
-            final GeoPoint geoPoint = location as GeoPoint;
-            final LatLng position =
-                LatLng(geoPoint.latitude, geoPoint.longitude);
-
-            _markers.add(
-              Marker(
-                markerId: MarkerId(doc.id),
-                position: position,
-                infoWindow: InfoWindow(
-                  title: data['barName'] as String? ?? 'Unknown Bar',
-                  snippet: data['description'] as String? ?? '',
-                ),
-                onTap: () => _showBarDetails(doc),
-              ),
+          if (data['location'] != null) {
+            final geoPoint = data['location'] as GeoPoint;
+            final marker = Marker(
+              markerId: MarkerId(doc.id),
+              position: LatLng(geoPoint.latitude, geoPoint.longitude),
+              infoWindow: InfoWindow(title: data['barName']),
+              onTap: () => _showBarDetails(doc),
             );
+            _markers.add(marker);
           }
         }
-        _isLoading = false;
       });
-
-      // Adjust map to show all markers
-      if (_markers.isNotEmpty && mapController != null) {
-        _fitBoundsForMarkers();
-      }
     } catch (e) {
       print('Error loading bars: $e');
+    } finally {
       setState(() => _isLoading = false);
     }
-  }
-
-  void _showMapTypeSelector() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Select Map Type'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.map_outlined),
-              title: const Text('Default'),
-              selected: _currentMapType == MapType.normal,
-              onTap: () {
-                setState(() => _currentMapType = MapType.normal);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.satellite_alt),
-              title: const Text('Satellite'),
-              selected: _currentMapType == MapType.satellite,
-              onTap: () {
-                setState(() => _currentMapType = MapType.satellite);
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.layers),
-              title: const Text('Hybrid'),
-              selected: _currentMapType == MapType.hybrid,
-              onTap: () {
-                setState(() => _currentMapType = MapType.hybrid);
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   void _hideBarDetails() {
@@ -880,39 +810,78 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  LatLngBounds _getBounds(Set<Marker> markers) {
-    if (markers.isEmpty) {
-      return LatLngBounds(
-        southwest: const LatLng(7.7844, 122.5872),
-        northeast: const LatLng(7.7844, 122.5872),
-      );
-    }
+  void _fitBoundsForMarkers() {
+    if (_markers.isEmpty || mapController == null) return;
 
-    double minLat = markers.first.position.latitude;
-    double maxLat = markers.first.position.latitude;
-    double minLng = markers.first.position.longitude;
-    double maxLng = markers.first.position.longitude;
-
-    for (Marker marker in markers) {
-      if (marker.position.latitude < minLat) minLat = marker.position.latitude;
-      if (marker.position.latitude > maxLat) maxLat = marker.position.latitude;
-      if (marker.position.longitude < minLng)
-        minLng = marker.position.longitude;
-      if (marker.position.longitude > maxLng)
-        maxLng = marker.position.longitude;
-    }
-
-    return LatLngBounds(
-      southwest: LatLng(minLat - 0.01, minLng - 0.01),
-      northeast: LatLng(maxLat + 0.01, maxLng + 0.01),
+    final bounds = _getBounds(_markers);
+    mapController!.animateCamera(
+      CameraUpdate.newLatLngBounds(bounds, 50.0),
     );
   }
 
-  void _fitBoundsForMarkers() {
-    final bounds = _getBounds(_markers);
-    mapController?.animateCamera(
-      CameraUpdate.newLatLngBounds(bounds, 100),
+  LatLngBounds _getBounds(Set<Marker> markers) {
+    double? minLat, maxLat, minLng, maxLng;
+
+    for (final marker in markers) {
+      final lat = marker.position.latitude;
+      final lng = marker.position.longitude;
+
+      minLat = minLat == null ? lat : min(minLat, lat);
+      maxLat = maxLat == null ? lat : max(maxLat, lat);
+      minLng = minLng == null ? lng : min(minLng, lng);
+      maxLng = maxLng == null ? lng : max(maxLng, lng);
+    }
+
+    return LatLngBounds(
+      southwest: LatLng(minLat!, minLng!),
+      northeast: LatLng(maxLat!, maxLng!),
     );
+  }
+
+  void _performSearch(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredBars = _allBars;
+      } else {
+        _filteredBars = _allBars.where((bar) {
+          final data = bar.data()!;
+          final name = (data['barName'] ?? '').toString().toLowerCase();
+          final address = (data['streetAddress'] ?? '').toString().toLowerCase();
+          final description = (data['description'] ?? '').toString().toLowerCase();
+          final searchLower = query.toLowerCase();
+          
+          return name.contains(searchLower) || 
+                 address.contains(searchLower) ||
+                 description.contains(searchLower);
+        }).toList();
+      }
+
+      // Update markers
+      _markers.clear();
+      for (var bar in _filteredBars) {
+        final data = bar.data()!;
+        if (data['location'] != null) {
+          final geoPoint = data['location'] as GeoPoint;
+          final marker = Marker(
+            markerId: MarkerId(bar.id),
+            position: LatLng(geoPoint.latitude, geoPoint.longitude),
+            infoWindow: InfoWindow(title: data['barName']),
+            onTap: () => _showBarDetails(bar),
+          );
+          _markers.add(marker);
+        }
+      }
+
+      // If there's exactly one result, show its details
+      if (_filteredBars.length == 1) {
+        _showBarDetails(_filteredBars.first);
+      }
+
+      // Fit map bounds to show all filtered markers
+      if (_markers.isNotEmpty) {
+        _fitBoundsForMarkers();
+      }
+    });
   }
 
   @override
@@ -945,18 +914,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               // Map View
               GoogleMap(
-                mapType: _currentMapType,
+                onMapCreated: (controller) {
+                  setState(() => mapController = controller);
+                },
                 initialCameraPosition: _kGooglePlex,
-                onMapCreated: onMapCreated,
-                markers: _markers,
                 myLocationEnabled: true,
                 myLocationButtonEnabled: false,
-                zoomControlsEnabled: true,
-                onCameraMove: (CameraPosition position) {
-                  setState(() {
-                    _currentZoom = position.zoom;
-                  });
-                },
+                markers: _markers,
+                mapType: _currentMapType,
+                zoomControlsEnabled: false,
+                buildingsEnabled: true,
+                trafficEnabled: true,
+                tiltGesturesEnabled: true,
+                rotateGesturesEnabled: true,
+                mapToolbarEnabled:
+                    true, // Enable the default toolbar for directions
+                compassEnabled: false,
               ),
               if (_isLoading)
                 Container(
@@ -995,13 +968,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       Expanded(
                         child: TextField(
-                          decoration: const InputDecoration(
+                          controller: _searchController,
+                          decoration: InputDecoration(
                             hintText: 'Search here',
                             border: InputBorder.none,
                             contentPadding:
                                 EdgeInsets.symmetric(horizontal: 16),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      _performSearch('');
+                                    },
+                                  )
+                                : null,
                           ),
-                          //          onChanged: _onSearch,
+                          onChanged: _performSearch,
                         ),
                       ),
                       Container(
@@ -1068,37 +1051,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
 
-              // Scale Indicator
-              Positioned(
-                left: 16,
-                bottom: 100,
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 100,
-                        height: 2,
-                        color: Colors.black,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        _getScaleText(),
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
               // Bottom Navigation
               Positioned(
                 left: 0,
@@ -1130,19 +1082,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         drawer: _buildDrawer(),
       ),
     );
-  }
-
-  String _getScaleText() {
-    // Calculate approximate scale based on zoom level
-    // These values are approximate and may need adjustment
-    double metersPerPixel = 156543.03392 * cos(7.7844 * pi / 180) / pow(2, _currentZoom);
-    double scaleWidth = 100 * metersPerPixel; // 100 is the width of our scale bar in pixels
-
-    if (scaleWidth >= 1000) {
-      return '${(scaleWidth / 1000).toStringAsFixed(1)} km';
-    } else {
-      return '${scaleWidth.toStringAsFixed(0)} m';
-    }
   }
 
   Widget _buildDrawer() {
@@ -1288,27 +1227,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ));
   }
+}
 
-  Widget _buildNavButton(bool isSelected, String label, IconData icon) {
-    final color = isSelected ? Colors.blue : Colors.grey;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
+Widget _buildNavButton(bool isSelected, String label, IconData icon) {
+  final color = isSelected ? Colors.blue : Colors.grey;
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Icon(
+        icon,
+        color: color,
+        size: 24,
+      ),
+      const SizedBox(height: 4),
+      Text(
+        label,
+        style: TextStyle(
           color: color,
-          size: 24,
+          fontSize: 12,
+          fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
         ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: color,
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
 }
